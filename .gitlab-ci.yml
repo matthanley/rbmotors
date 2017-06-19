@@ -1,0 +1,32 @@
+image: docker:latest
+
+variables:
+  DOCKER_SERVICE: rbmotors_website
+  PRODUCTION_URL: http://www.rbmotorsyeovil.co.uk/
+  IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME
+
+stages:
+  - build
+  - deploy
+
+before_script:
+  - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+
+build:
+  stage: build
+  tags:
+    - docker
+  script:
+    - docker build --pull -t $IMAGE_TAG .
+    - docker push $IMAGE_TAG
+
+deploy:
+  stage: deploy
+  script:
+    - apk --update --no-cache add curl
+    - curl https://deploy.appdelivery.eloquent.co/service/$DOCKER_SERVICE/$DEPLOY_KEY
+  environment:
+    name: production
+    url: $PRODUCTION_URL
+  only:
+    - master
